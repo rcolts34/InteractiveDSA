@@ -1,0 +1,20 @@
+{
+      "singleplayer": 0.8,
+      "action": 0.5,  
+      "adventure": 0.7, 
+      "indie": 0.2,
+      "atmospheric": 0.8,
+      "multiplayer": 0.3,
+      "local multiplayer": 0.5,
+      "story rich": 0.8,
+      "casual": 0.5,
+      "great soundtrack": 0.5,
+      "co-op": 0.5,
+      "online co-op": 0.5,
+      "local co-op": 0.5,
+      "controller": 0.1,
+      "gaming": 0.1,
+      "villian protagonist": 0.1,
+      "trackir": 0.1
+    }
+    
