@@ -1,126 +1,69 @@
-import { useMemo, useState } from 'react';
+import { useState } from "react";
 
-function projectTo2D(games) {
-  const tags = Object.keys(
-    games.reduce((acc, g) => ({ ...acc, ...g.tagVector }), {})
-  );
+// Normalize a value to a range
+const scale = (value, min, max, outMin, outMax) =>
+  ((value - min) / Math.max(1e-5, max - min)) * (outMax - outMin) + outMin;
 
-  const matrix = games.map((game) =>
-    tags.map((tag) => game.tagVector?.[tag] ?? 0)
-  );
+// Convert metric to color (blue → green)
+const getColor = (value, min, max) => {
+  const norm = (value - min) / Math.max(1e-5, max - min);
+  const r = Math.floor(50 * (1 - norm));
+  const g = Math.floor(255 * norm);
+  const b = Math.floor(255 * (1 - norm));
+  return `rgb(${r},${g},${b})`;
+};
 
-  const mean = Array(tags.length).fill(0);
-  matrix.forEach((vec) => {
-    vec.forEach((val, i) => (mean[i] += val / matrix.length));
-  });
-
-  const centered = matrix.map((vec) =>
-    vec.map((val, i) => val - mean[i])
-  );
-
-  const cov = centered[0].map((_, i) =>
-    centered[0].map((_, j) =>
-      centered.reduce((sum, row) => sum + row[i] * row[j], 0)
-    )
-  );
-
-  const eigvec1 = cov.map((_, i) => 1);
-  const eigvec2 = cov.map((_, i) => (i % 2 === 0 ? 1 : -1));
-
-  const normalize = (v) => {
-    const len = Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
-    return v.map((x) => x / len);
-  };
-
-  const axis1 = normalize(eigvec1);
-  const axis2 = normalize(eigvec2);
-
-  const points = centered.map((vec, i) => {
-    const x = vec.reduce((sum, v, j) => sum + v * axis1[j], 0);
-    const y = vec.reduce((sum, v, j) => sum + v * axis2[j], 0);
-    return {
-      ...games[i],
-      x,
-      y,
-    };
-  });
-
-  return points;
-}
-
-function scale(value, min, max, newMin, newMax) {
-  if (max - min === 0) return (newMax + newMin) / 2;
-  return ((value - min) / (max - min)) * (newMax - newMin) + newMin;
-}
-
-export default function TasteMap({ games, activeSortKey = "matchScore" }) {
+export default function TasteMap({ games, activeSortKey = "matchScore", favorites = [] }) {
   const [selectedGame, setSelectedGame] = useState(null);
-  const [sortKey, setSortKey] = useState(activeSortKey);
+  const [colorEnabled, setColorEnabled] = useState(true);
 
-  const projectedGames = useMemo(() => projectTo2D(games), [games]);
+  const favoriteIDs = new Set(favorites.map(g => g["ID#"]));
 
-  const [minX, maxX] = useMemo(() => {
-    const xs = projectedGames.map((g) => g.x);
-    return [Math.min(...xs), Math.max(...xs)];
-  }, [projectedGames]);
+  const scores = games.map((g) => g.matchScore ?? 0);
+  const distances = games.map((g) => g.fingerprintDistance ?? 0);
+  const colorValues = games.map((g) => g[activeSortKey] ?? 0);
 
-  const [minY, maxY] = useMemo(() => {
-    const ys = projectedGames.map((g) => g.y);
-    return [Math.min(...ys), Math.max(...ys)];
-  }, [projectedGames]);
-
-  const [minScore, maxScore] = useMemo(() => {
-    const scores = games.map((g) => g[sortKey] ?? 0);
-    return [Math.min(...scores), Math.max(...scores)];
-  }, [games, sortKey]);
-
-  const getColor = (score) => {
-    const scaled = scale(score, minScore, maxScore, 0, 1);
-    const hue = 120 * scaled;
-    return `hsl(${hue}, 70%, 60%)`;
-  };
+  const minScore = Math.min(...scores);
+  const maxScore = Math.max(...scores);
+  const minDist = Math.min(...distances);
+  const maxDist = Math.max(...distances);
+  const minColor = Math.min(...colorValues);
+  const maxColor = Math.max(...colorValues);
 
   return (
-    <div className="bg-zinc-900 p-4 rounded-md shadow mt-8 relative">
+    <div className="my-6">
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-xl font-bold text-cyan-300">🗺️ 2D Taste Map</h2>
-
-        <select
-          value={sortKey}
-          onChange={(e) => setSortKey(e.target.value)}
-          className="bg-zinc-800 text-white px-2 py-1 rounded"
-        >
-          <option value="matchScore">Dot Product</option>
-          <option value="similarity">Cosine</option>
-          <option value="echoScore">Echo</option>
-          <option value="distance">Euclidean</option>
-          <option value="fingerprintDistance">FP Distance</option>
-        </select>
+        <h2 className="text-xl font-bold text-lime-400">🧬 Cartesian Taste Map</h2>
+        <label className="flex items-center gap-2 text-sm text-white">
+          <input
+            type="checkbox"
+            checked={colorEnabled}
+            onChange={() => setColorEnabled(!colorEnabled)}
+          />
+          🎨 Enable Color Scaling
+        </label>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-2 text-xs mb-2">
-        <span className="text-zinc-400">Low</span>
-        <div className="flex-1 h-2 bg-gradient-to-r from-red-500 via-yellow-300 to-green-500 rounded" />
-        <span className="text-zinc-400">High</span>
-      </div>
+      <svg viewBox="100 0 700 500" className="w-full h-[800px] bg-zinc-800 rounded shadow">
+        {games.map((g, i) => {
+          const x = scale(g.matchScore ?? 0, minScore, maxScore, 50, 800);
+          const y = scale(g.fingerprintDistance ?? 0, minDist, maxDist, 400, 100); // Inverted Y
 
-      <svg viewBox="0 0 800 600" className="w-full h-[600px] bg-zinc-800 rounded shadow">
-        {projectedGames.map((g, i) => {
-          const x = scale(g.x, minX, maxX, 40, 760);
-          const y = scale(g.y, minY, maxY, 40, 560);
-          const score = g[sortKey] ?? 0;
+          const isFavorite = favoriteIDs.has(g["ID#"]);
+          const value = g[activeSortKey] ?? 0;
+          const fillColor = colorEnabled ? getColor(value, minColor, maxColor) : "#aaa";
 
           return (
             <circle
               key={i}
               cx={x}
               cy={y}
-              r={5}
-              fill={getColor(score)}
-              stroke="black"
-              strokeWidth={0.5}
+              r={isFavorite ? 7 : 4}
+              fill={fillColor}
+              stroke={isFavorite ? "gold" : "black"}
+              strokeWidth={isFavorite ? 2 : 0.5}
               onClick={() => setSelectedGame(g)}
+              style={isFavorite ? { filter: "drop-shadow(0 0 6px gold)" } : {}}
             >
               <title>{g.Title} ({Object.keys(g.tagVector || {}).length} tags)</title>
             </circle>
@@ -128,33 +71,28 @@ export default function TasteMap({ games, activeSortKey = "matchScore" }) {
         })}
       </svg>
 
+      {/* Legend */}
+      <div className="flex items-center gap-2 text-sm text-white mt-4 ml-1">
+        <div className="w-48 h-4 bg-gradient-to-r from-blue-500 to-green-500 rounded"></div>
+        <div className="flex justify-between w-48 text-xs text-gray-400">
+          <span>Low Match</span>
+          <span>High Match</span>
+        </div>
+      </div>
+
+      {/* Selected Game Info */}
       {selectedGame && (
-        <div className="absolute top-4 right-4 bg-zinc-800 border border-zinc-700 p-4 rounded-md w-80 shadow-md">
-          <h3 className="text-lg text-purple-300 font-bold mb-2">{selectedGame.Title}</h3>
-          <div className="text-sm space-y-1">
-            <div><strong className="text-zinc-400">Dot:</strong> {selectedGame.matchScore}</div>
-            <div><strong className="text-zinc-400">Cosine:</strong> {selectedGame.similarity?.toFixed(3)}</div>
-            <div><strong className="text-zinc-400">Echo:</strong> {selectedGame.echoScore}</div>
-            <div><strong className="text-zinc-400">Euclidean:</strong> {selectedGame.distance?.toFixed(3)}</div>
-            <div><strong className="text-zinc-400">FP Distance:</strong> {selectedGame.fingerprintDistance?.toFixed(3)}</div>
-            <div className="mt-2 text-zinc-300">
-              <strong>Top Tags:</strong>
-              <ul className="list-disc list-inside text-xs mt-1">
-                {Object.entries(selectedGame.tagVector || {})
-                  .sort((a, b) => b[1] - a[1])
-                  .slice(0, 10)
-                  .map(([tag, score]) => (
-                    <li key={tag}>{tag} ({score})</li>
-                  ))}
-              </ul>
-            </div>
-            <button
-              onClick={() => setSelectedGame(null)}
-              className="mt-3 px-3 py-1 bg-zinc-700 rounded hover:bg-zinc-600 text-white text-xs"
-            >
-              Close
-            </button>
-          </div>
+        <div className="mt-4 p-4 bg-zinc-700 rounded shadow">
+          <h3 className="text-lg font-bold text-white mb-1">{selectedGame.Title}</h3>
+          <p className="text-sm text-gray-300 mb-1">
+            🎯 Match Score: {selectedGame.matchScore?.toFixed(2)} |
+            🔄 Echo: {selectedGame.echoScore?.toFixed(2)} |
+            🧠 Cosine: {selectedGame.similarity?.toFixed(3)} |
+            📏 Distance: {selectedGame.distance?.toFixed(2)}
+          </p>
+          <p className="text-sm text-gray-400">
+            Tags: {Object.keys(selectedGame.tagVector || {}).join(", ")}
+          </p>
         </div>
       )}
     </div>
