@@ -11,8 +11,9 @@ import { scoreGamesEcho } from '../utils/scoreGamesEcho';
 import { scoreGamesEuclidean } from '../utils/scoreGamesEuclidean';
 
 import GameSelector from '../components/GameSelector';
+import TasteMap from '../components/TasteMap'; // ✅ Be sure this file exists and path is correct
 
-function App() {
+function TasteVector() {
   const [fingerprint, setFingerprint] = useState({});
   const [selectedGames, setSelectedGames] = useState([]);
   const [scoredGames, setScoredGames] = useState([]);
@@ -30,7 +31,7 @@ function App() {
       return;
     }
 
-    const rawFingerprint = generateFingerprint(favorites);[[]]
+    const rawFingerprint = generateFingerprint(favorites);
     const enrichedFavorites = generateGameTagVectors(favorites, rawFingerprint);
     setSelectedGames(enrichedFavorites);
 
@@ -41,7 +42,7 @@ function App() {
     const gamesToScore = games.filter(g => !favoriteTitles.has(g.Title));
     const gamesWithVectors = generateGameTagVectors(gamesToScore, rawFingerprint);
 
-    // 🧠 Decoupled scoring pipeline
+    // Scoring pipeline
     let allScored = gamesWithVectors;
     allScored = scoreGamesDotProduct(allScored, fp);
     allScored = scoreGamesCosine(allScored, fp);
@@ -108,7 +109,7 @@ function App() {
         <>
           <h2 className="text-2xl mb-2">📊 Top Matches</h2>
 
-          {/* Sort Strategy Selector */}
+          {/* Sort Selector */}
           <div className="mb-4">
             <label className="mr-2">Sort by:</label>
             <select
@@ -117,34 +118,40 @@ function App() {
               className="bg-zinc-800 text-white p-1 rounded"
             >
               <option value="matchScore">Dot Product</option>
-              <option value="similarity">Cosine Similarity</option>
-              <option value="distance">Euclidean Distance</option>
-              <option value="echoScore">Echo Score</option>
+              <option value="similarity">Cosine</option>
+              <option value="distance">Euclidean</option>
+              <option value="echoScore">Echo</option>
               <option value="fingerprintDistance">FP Distance</option>
             </select>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Taste Map Visualization */}
+          <TasteMap
+            games={scoredGames.slice(0, 300)}
+            activeSortKey={sortKey}
+          />
+
+          {/* Score Table */}
+          <div className="overflow-x-auto mt-8">
             <table className="table-auto text-sm w-full border border-zinc-700">
               <thead className="bg-zinc-800 text-purple-300">
                 <tr>
                   <th className="p-2 text-left">Game</th>
-                  <th className="p-2 text-right">Dot Product</th>
+                  <th className="p-2 text-right">Dot</th>
                   <th className="p-2 text-right">Cosine</th>
                   <th className="p-2 text-right">Euclidean</th>
                   <th className="p-2 text-right">Echo</th>
-                  <th className="p-2 text-right">FP Distance</th>
+                  <th className="p-2 text-right">FP Dist</th>
                 </tr>
               </thead>
               <tbody>
                 {[...scoredGames]
-                  .sort((a, b) => {
-                    if (sortKey === "distance" || sortKey === "fingerprintDistance") {
-                      return a[sortKey] - b[sortKey]; // ascending
-                    }
-                    return b[sortKey] - a[sortKey]; // descending
-                  })
-                  .slice(0, 500)
+                  .sort((a, b) =>
+                    sortKey === 'distance' || sortKey === 'fingerprintDistance'
+                      ? a[sortKey] - b[sortKey]
+                      : b[sortKey] - a[sortKey]
+                  )
+                  .slice(0, 50)
                   .map((g, i) => (
                     <tr key={i} className="odd:bg-zinc-800 even:bg-zinc-900">
                       <td className="p-2">{g.Title}</td>
@@ -164,4 +171,4 @@ function App() {
   );
 }
 
-export default App;
+export default TasteVector;
