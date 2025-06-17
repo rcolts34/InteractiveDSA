@@ -3,12 +3,15 @@ import games from "../data/games.json";
 
 import { generateFingerprint } from '../utils/generateFingerprint';
 import { generateGameTagVectors } from '../utils/generateGameTagVectors';
+import { applyIdfWeights } from '../utils/applyIdfWeights';
+import { generateFingerprintTfIdf } from '../utils/generateFingerprintTfIdf';
 
 import { scoreGamesCosine } from '../utils/scoreGamesCosine';
 import { scoreGamesDistanceFromFingerprint } from '../utils/scoreGamesDistanceFromFingerprint';
 import { scoreGamesDotProduct } from '../utils/scoreGamesDotProduct';
 import { scoreGamesEcho } from '../utils/scoreGamesEcho';
 import { scoreGamesEuclidean } from '../utils/scoreGamesEuclidean';
+import { scoreGamesTfIdfCosine } from '../utils/scoreGamesTfIdfCosine';
 
 import GameSelector from '../components/GameSelector';
 import TasteMap from '../components/TasteMap'; // ✅ Be sure this file exists and path is correct
@@ -31,16 +34,16 @@ function TasteVector() {
       return;
     }
 
-    const rawFingerprint = generateFingerprint(favorites);
-    const enrichedFavorites = generateGameTagVectors(favorites, rawFingerprint);
-    setSelectedGames(enrichedFavorites);
+    const favoriteVectors = applyIdfWeights(generateGameTagVectors(favorites));
+    setSelectedGames(favoriteVectors);
 
-    const fp = generateFingerprint(enrichedFavorites);
+    const fp = generateFingerprint(favoriteVectors);
+    const fpTfidf = generateFingerprintTfIdf(favoriteVectors);
     setFingerprint(fp);
 
-    const favoriteTitles = new Set(enrichedFavorites.map(g => g.Title));
+    const favoriteTitles = new Set(favoriteVectors.map(g => g.Title));
     const gamesToScore = games.filter(g => !favoriteTitles.has(g.Title));
-    const gamesWithVectors = generateGameTagVectors(gamesToScore, rawFingerprint);
+    const gamesWithVectors = applyIdfWeights(generateGameTagVectors(gamesToScore));
 
     // Scoring pipeline
     let allScored = gamesWithVectors;
@@ -49,6 +52,7 @@ function TasteVector() {
     allScored = scoreGamesEuclidean(allScored, fp);
     allScored = scoreGamesEcho(allScored, fp);
     allScored = scoreGamesDistanceFromFingerprint(allScored, fp);
+    allScored = scoreGamesTfIdfCosine(allScored, fpTfidf);
 
     setScoredGames(allScored);
   };
@@ -122,6 +126,7 @@ function TasteVector() {
               <option value="distance">Euclidean</option>
               <option value="echoScore">Echo</option>
               <option value="fingerprintDistance">FP Distance</option>
+              <option value="tfidfSimilarity">TF-IDF</option>
             </select>
           </div>
 
@@ -142,6 +147,7 @@ function TasteVector() {
                   <th className="p-2 text-right">Euclidean</th>
                   <th className="p-2 text-right">Echo</th>
                   <th className="p-2 text-right">FP Dist</th>
+                  <th className="p-2 text-right">TF-IDF</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,6 +166,7 @@ function TasteVector() {
                       <td className="p-2 text-right text-rose-300">{g.distance.toFixed(3)}</td>
                       <td className="p-2 text-right text-yellow-400">{g.echoScore}</td>
                       <td className="p-2 text-right text-fuchsia-400">{g.fingerprintDistance.toFixed(3)}</td>
+                      <td className="p-2 text-right text-blue-400">{g.tfidfSimilarity.toFixed(3)}</td>
                     </tr>
                   ))}
               </tbody>

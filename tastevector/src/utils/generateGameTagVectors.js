@@ -1,5 +1,5 @@
 
-export function generateGameTagVectors(games, fingerprint) {
+export function generateGameTagVectors(games) {
   return games.map(game => {
     const tags = game.Tags?.split(',').map(t => t.trim().toLowerCase()) || [];
 
