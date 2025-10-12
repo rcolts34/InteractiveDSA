@@ -1,21 +1,24 @@
 export function scoreGamesDistanceFromFingerprint(games, fingerprint) {
-      const tags = Object.keys(fingerprint);
-    
-      return games.map(game => {
-        let sumSquares = 0;
-    
-        for (const tag of tags) {
-          const gameValue = game.tagVector?.[tag] || 0;
-          const userValue = fingerprint[tag];
-          sumSquares += (gameValue - userValue) ** 2;
-        }
-    
-        const distance = Math.sqrt(sumSquares);
-    
-        return {
-          ...game,
-          fingerprintDistance: distance
-        };
-      }).sort((a, b) => a.fingerprintDistance - b.fingerprintDistance); // smaller = closer
-    }
+  return games.map((game) => {
+    const gameVector = game.tfidfVector || {};
+    const allTags = new Set([
+      ...Object.keys(fingerprint || {}),
+      ...Object.keys(gameVector),
+    ]);
+
+    let distance = 0;
+    allTags.forEach((tag) => {
+      const userValue = fingerprint?.[tag] || 0;
+      const gameValue = gameVector[tag] || 0;
+      distance += Math.abs(userValue - gameValue);
+    });
+
+    const normalizedDistance = distance / Math.max(1, allTags.size);
+
+    return {
+      ...game,
+      fingerprintDistance: normalizedDistance,
+    };
+  });
+}
     

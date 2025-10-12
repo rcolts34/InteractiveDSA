@@ -17,7 +17,7 @@ export default function TasteMap({ games, activeSortKey = "matchScore", favorite
   const [selectedGame, setSelectedGame] = useState(null);
   const [colorEnabled, setColorEnabled] = useState(true);
 
-  const favoriteIDs = new Set(favorites.map(g => g["ID#"]));
+  const favoriteIDs = new Set(favorites.map((g) => g.ID));
 
   const scores = games.map((g) => g.matchScore ?? 0);
   const distances = games.map((g) => g.fingerprintDistance ?? 0);
@@ -49,7 +49,7 @@ export default function TasteMap({ games, activeSortKey = "matchScore", favorite
           const x = scale(g.matchScore ?? 0, minScore, maxScore, 50, 800);
           const y = scale(g.fingerprintDistance ?? 0, minDist, maxDist, 400, 100); // Inverted Y
 
-          const isFavorite = favoriteIDs.has(g["ID#"]);
+          const isFavorite = favoriteIDs.has(g.ID);
           const value = g[activeSortKey] ?? 0;
           const fillColor = colorEnabled ? getColor(value, minColor, maxColor) : "#aaa";
 
