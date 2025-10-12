@@ -49,9 +49,9 @@ function TasteVector() {
     let allScored = gamesWithVectors;
     allScored = scoreGamesDotProduct(allScored, fp);
     allScored = scoreGamesCosine(allScored, fp);
-    allScored = scoreGamesEuclidean(allScored, fp);
+    allScored = scoreGamesEuclidean(allScored, fpTfidf);
     allScored = scoreGamesEcho(allScored, fp);
-    allScored = scoreGamesDistanceFromFingerprint(allScored, fp);
+    allScored = scoreGamesDistanceFromFingerprint(allScored, fpTfidf);
     allScored = scoreGamesTfIdfCosine(allScored, fpTfidf);
 
     setScoredGames(allScored);
@@ -134,6 +134,7 @@ function TasteVector() {
           <TasteMap
             games={scoredGames.slice(0, 300)}
             activeSortKey={sortKey}
+            favorites={selectedGames}
           />
 
           {/* Score Table */}

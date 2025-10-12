@@ -1,7 +1,8 @@
 // utils/scoreGamesDotProduct.js
-export function scoreGamesDotProduct(games, fingerprint) {
-  return games.map(game => {
-    const tags = Object.keys(fingerprint);
+export function scoreGamesDotProduct(games, fingerprint = {}) {
+  const tags = Object.keys(fingerprint);
+
+  return games.map((game) => {
     let dot = 0;
 
     for (const tag of tags) {
@@ -12,7 +13,7 @@ export function scoreGamesDotProduct(games, fingerprint) {
 
     return {
       ...game,
-      matchScore: dot
+      matchScore: dot,
     };
   });
 }

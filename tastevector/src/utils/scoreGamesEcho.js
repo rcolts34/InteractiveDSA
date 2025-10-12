@@ -1,16 +1,33 @@
 export function scoreGamesEcho(games, fingerprint) {
-  return games.map(game => {
-    let echoScore = 0;
+  const fingerprintTotal = Object.values(fingerprint || {}).reduce(
+    (sum, value) => sum + value,
+    0,
+  );
 
-    for (const tag in fingerprint) {
-      if (game.tagVector?.[tag] > 0) {
-        echoScore += fingerprint[tag];
-      }
-    }
+  return games.map((game) => {
+    const tagVector = game.tagVector || {};
+    let overlapWeight = 0;
+    let rareTagBoost = 0;
+
+    Object.entries(tagVector).forEach(([tag, weight]) => {
+      const userWeight = fingerprint?.[tag];
+      if (!userWeight) return;
+      overlapWeight += Math.min(weight, userWeight);
+      rareTagBoost += userWeight;
+    });
+
+    const coverage = fingerprintTotal
+      ? overlapWeight / fingerprintTotal
+      : 0;
+
+    const diversity = Object.keys(tagVector).length;
+    const balance = diversity ? rareTagBoost / (diversity * (fingerprintTotal || 1)) : 0;
+
+    const echoScore = coverage * 0.7 + balance * 0.3;
 
     return {
       ...game,
-      echoScore
+      echoScore,
     };
   });
 }
