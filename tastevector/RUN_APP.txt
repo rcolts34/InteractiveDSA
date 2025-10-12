@@ -1,0 +1,4 @@
+1. Navigate to 
+     C:\GitHub\InteractiveDSA\tastevector 
+2. Enter command
+npm run dev

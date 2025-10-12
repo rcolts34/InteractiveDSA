@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const { readFile, utils } = xlsx;
 
 // Load Excel file
-const workbook = readFile("GameDatabase.xlsm");
+const workbook = readFile("GameDatabase_3.xlsm");
 const sheet = workbook.Sheets["Games"];
 const games = utils.sheet_to_json(sheet);
 
